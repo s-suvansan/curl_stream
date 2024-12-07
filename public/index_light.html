@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CURL Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        .clear-button {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .clear-button:hover {
+            background-color: #cc0000;
+        }
+        #curlsList {
+            list-style: none;
+            padding: 0;
+        }
+        .curl-item {
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .curl-text {
+            word-break: break-all;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CURL Stream</h1>
+            <button id="clearButton" class="clear-button">Clear All</button>
+        </div>
+        <ul id="curlsList"></ul>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            orderBy, 
+            onSnapshot,
+            deleteDoc,
+            getDocs
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFxvLTq8fcaAF9cZAYG-KpkgSe2X4kHGA",
+            authDomain: "unicom-vendor.firebaseapp.com",
+            databaseURL: "https://unicom-vendor.firebaseio.com",
+            projectId: "unicom-vendor",
+            storageBucket: "unicom-vendor.appspot.com",
+            messagingSenderId: "994327206621",
+            appId: "1:994327206621:web:a03fefe7b36cceb61f5934",
+            measurementId: "G-SGDKHR2GX2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Function to format timestamp
+        function formatTimestamp(timestamp) {
+            if (timestamp && timestamp.seconds) {
+                return new Date(timestamp.seconds * 1000).toLocaleString();
+            }
+            return 'Unknown date';
+        }
+
+        // Function to update the UI with new data
+        function updateUI(curls) {
+            const curlsList = document.getElementById('curlsList');
+            curlsList.innerHTML = ''; // Clear existing list
+
+            curls.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement('li');
+                li.className = 'curl-item';
+                li.innerHTML = `
+                    <div class="timestamp">${formatTimestamp(data.dateTime)}</div>
+                    <div class="curl-text">${data.curl}</div>
+                `;
+                curlsList.appendChild(li);
+            });
+        }
+
+        // Function to clear all CURLs
+        async function clearAllCurls() {
+            if (confirm('Are you sure you want to delete all CURLs? This action cannot be undone.')) {
+                try {
+                    const curlsRef = collection(db, "Customer_CURLs", getQueryParam('id'), "CURLs");
+                    const snapshot = await getDocs(curlsRef);
+                    
+                    // Delete each document
+                    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+                    await Promise.all(deletePromises);
+                    
+                    console.log('All CURLs deleted successfully');
+                } catch (error) {
+                    console.error('Error clearing CURLs:', error);
+                    alert('Error clearing CURLs. Please try again.');
+                }
+            }
+        }
+
+        // Set up real-time listener
+        function setupRealTimeListener() {
+            const curlsRef = collection(db, "Customer_CURLs", getQueryParam('id'), "CURLs");
+            const q = query(curlsRef, orderBy("dateTime", "desc")); // newest first
+
+            // Set up real-time listener
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                // Handle incoming changes
+                updateUI(snapshot.docs);
+            }, (error) => {
+                console.error("Error listening to changes: ", error);
+            });
+
+            // Return unsubscribe function (useful if you need to clean up)
+            return unsubscribe;
+        }
+
+        // Set up event listeners when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setupRealTimeListener();
+            
+            // Add click handler for clear button
+            document.getElementById('clearButton').addEventListener('click', clearAllCurls);
+        });
+    </script>
+</body>
+</html>
