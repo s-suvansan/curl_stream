@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="icon" type="image/png" href="favicon.png"/>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CURL Stream</title>
@@ -21,7 +22,7 @@
       }
 
       .container {
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 0 auto;
         background-color: #252526;
         padding: 15px;
@@ -287,12 +288,13 @@
       /* Add these just before your @media queries */
       .warning-banner {
         background-color: #5c3636;
-        color: #ffb3b3;
+        color: #ffffff;
         padding: 10px;
         margin-bottom: 15px;
         border-radius: 4px;
         text-align: center;
         animation: pulse 2s infinite;
+        font-size: 15px;
       }
 
       @keyframes pulse {
@@ -304,30 +306,6 @@
         }
         100% {
           opacity: 1;
-        }
-      }
-
-      .floating-reminder {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: #2d2d2d;
-        color: #ffb3b3;
-        padding: 12px;
-        border-radius: 4px;
-        border: 1px solid #5c3636;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-        max-width: 300px;
-        animation: slideInPop 0.5s ease-out;
-      }
-
-      @keyframes slideInPop {
-        from {
-          transform: translateX(100%);
-        }
-        to {
-          transform: translateX(0);
         }
       }
     </style>
@@ -343,6 +321,12 @@
           <button id="deleteDocButton" class="terminal-button delete-button">
             Delete Document
           </button>
+        </div>
+      </div>
+      <div>
+        <div class="warning-banner">
+          <b>⚠️ Important</b>: Please delete this document using the
+          <b>'Delete Document'</b> button when you finish your work
         </div>
       </div>
       <ul id="curlsList">
@@ -384,41 +368,6 @@
       function getQueryParam(param) {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get(param);
-      }
-
-      let hasItems = false;
-      let reminderTimeout;
-
-      function showFloatingReminder() {
-        // Clear existing timeout
-        if (reminderTimeout) {
-          clearTimeout(reminderTimeout);
-        }
-
-        // Remove existing floating reminder if any
-        const existingReminder = document.querySelector(".floating-reminder");
-        if (existingReminder) {
-          existingReminder.remove();
-        }
-
-        // Create and show new reminder
-        const reminder = document.createElement("div");
-        reminder.className = "floating-reminder";
-        reminder.innerHTML = `
-        ⚠️ Reminder: Don't forget to delete this document 
-        when you're done using the 'Delete Document' button
-    `;
-        document.body.appendChild(reminder);
-
-        // Remove reminder after 5 seconds
-        setTimeout(() => {
-          reminder.style.opacity = "0";
-          reminder.style.transition = "opacity 0.5s ease-out";
-          setTimeout(() => reminder.remove(), 500);
-        }, 5000);
-
-        // Schedule next reminder
-        reminderTimeout = setTimeout(showFloatingReminder, 30000); // Show every 30 seconds
       }
 
       function formatTimestamp(timestamp) {
@@ -468,18 +417,6 @@
             '<div class="no-data">No CURL requests found</div>';
           return;
         }
-
-        // if (curls.length > 0) {
-        //   // Add warning banner at the top
-        //   const warning = document.createElement("div");
-        //   warning.className = "warning-banner";
-        //   warning.innerHTML = `
-        //     ⚠️ Important: Please delete this document using the 'Delete Document' button 
-        //     when you finish your work
-        // `;
-        //   curlsList.insertBefore(warning, curlsList.firstChild);
-        //   showFloatingReminder();
-        // }
 
         curls.forEach((doc, index) => {
           const data = doc.data();
