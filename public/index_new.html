@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>CURL Stream</title>
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="CURL Stream">
+    <meta name="description" content="CURL Stream is a real-time web application that allows users to monitor and visualize CURL requests.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CURL Stream">
+    <meta property="og:description" content="CURL Stream is a real-time web application that allows users to monitor and visualize CURL requests.">    
+    <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/chat-app-abf2c.appspot.com/o/curl-stream.png?alt=media&token=9d188fcb-7d18-4632-a034-e1cbaa0a2903">
+  
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="CURL Stream">
+    <meta property="twitter:description" content="CURL Stream is a real-time web application that allows users to monitor and visualize CURL requests.">  
+    <meta property="twitter:image" content="https://firebasestorage.googleapis.com/v0/b/chat-app-abf2c.appspot.com/o/curl-stream.png?alt=media&token=9d188fcb-7d18-4632-a034-e1cbaa0a2903">
+
+    <style>
+      body {
+        font-family: "Courier New", monospace;
+        margin: 0;
+        background-color: #1e1e1e;
+        color: #b3e5b5;
+        min-height: 100vh;
+        padding: 10px;
+        line-height: 1.6;
+        box-sizing: border-box;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        background-color: #252526;
+        padding: 15px;
+        border: 1px solid #454545;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+        width: 100%;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #454545;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      h1 {
+        color: #d3e7d3;
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .terminal-button {
+        background-color: #333333;
+        color: #d3e7d3;
+        border: 1px solid #454545;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        transition: all 0.3s;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+
+      .terminal-button:hover {
+        background-color: #454545;
+        border-color: #666666;
+      }
+
+      .delete-button {
+        border-color: #5c3636;
+        color: #ffb3b3;
+      }
+
+      .delete-button:hover {
+        background-color: #5c3636;
+        color: #ffd1d1;
+      }
+
+      #curlsList {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .curl-item {
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #454545;
+        background-color: #2d2d2d;
+        border-radius: 4px;
+        opacity: 0;
+        transform: translateY(20px);
+        position: relative;
+      }
+
+      .curl-item.show {
+        animation: slideIn 0.5s ease forwards;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .timestamp {
+        font-size: 0.85em;
+        color: #888888;
+        margin-bottom: 8px;
+      }
+
+      .curl-container {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .curl-text {
+        word-break: break-all;
+        font-family: "Courier New", monospace;
+        line-height: 1.4;
+        color: #cce8cc;
+        flex-grow: 1;
+        font-size: 14px;
+      }
+
+      .copy-button {
+        background: none;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        min-height: 32px;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+
+      .copy-button:hover {
+        background-color: #454545;
+      }
+
+      .copy-button svg {
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        transition: opacity 0.2s;
+      }
+
+      .copy-button .copy-icon,
+      .copy-button .check-icon {
+        stroke: #fff;
+      }
+
+      @keyframes checkAnimation {
+        0% {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.7;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .check-icon {
+        transform-origin: center;
+      }
+
+      .copy-success {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #2d2d2d;
+        color: #99cc99;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        animation: fadeOut 1s ease-in forwards;
+        border: 1px solid #454545;
+      }
+
+      @keyframes fadeOut {
+        0% {
+          opacity: 1;
+        }
+        70% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #888888;
+        font-style: italic;
+        border: 1px dashed #454545;
+        border-radius: 4px;
+        margin-top: 20px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px 20px;
+        color: #b3e5b5;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 3px solid #454545;
+        border-radius: 50%;
+        border-top-color: #b3e5b5;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 5px;
+        }
+
+        .container {
+          padding: 10px;
+        }
+
+        .header {
+          flex-direction: column;
+          align-items: stretch;
+          text-align: center;
+        }
+
+        .button-group {
+          justify-content: center;
+        }
+
+        .curl-item {
+          padding: 10px;
+        }
+
+        .curl-text {
+          font-size: 13px;
+        }
+
+        h1 {
+          font-size: 20px;
+        }
+
+        .terminal-button {
+          padding: 6px 12px;
+          font-size: 13px;
+          width: 100%;
+        }
+      }
+
+      /* Add these just before your @media queries */
+      .warning-banner {
+        background-color: #5c3636;
+        color: #ffffff;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        text-align: center;
+        animation: pulse 2s infinite;
+        font-size: 15px;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+       /* New styles for send request button and response */
+      /* .send-button {
+        background-color: #2d5a3e;
+        border-color: #3a7350;
+        color: #d3e7d3;
+      }
+
+      .send-button:hover {
+        background-color: #3a7350;
+        border-color: #48895f;
+      }
+
+      .send-button.loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+      } */
+
+      
+      .send-button {
+        background: none;
+        border: none;
+        padding: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        min-height: 32px;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+
+      .send-button:hover {
+        background-color: #454545;
+      }
+
+      .send-button svg {
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        transition: opacity 0.2s;
+      }
+
+      .response-container {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #2a2a2a;
+        border: 1px solid #454545;
+        border-radius: 4px;
+        display: none;
+      }
+
+      .response-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #454545;
+      }
+
+      .response-status {
+        font-weight: bold;
+      }
+
+      .status-success {
+        color: #99cc99;
+      }
+
+      .status-error {
+        color: #cc9999;
+      }
+
+      .response-content {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>CURL Stream Terminal</h1>
+        <div class="button-group">
+          <button id="clearButton" class="terminal-button">
+            Clear History
+          </button>
+          <button id="deleteDocButton" class="terminal-button delete-button">
+            Delete Document
+          </button>
+        </div>
+      </div>
+      <div>
+        <div class="warning-banner">
+          <b>⚠️ Important</b>: Please delete this document using the
+          <b>'Delete Document'</b> button when you finish your work
+        </div>
+      </div>
+      <ul id="curlsList">
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading CURL requests...</div>
+        </div>
+      </ul>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        query,
+        orderBy,
+        onSnapshot,
+        deleteDoc,
+        getDocs,
+        doc,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAFxvLTq8fcaAF9cZAYG-KpkgSe2X4kHGA",
+        authDomain: "unicom-vendor.firebaseapp.com",
+        databaseURL: "https://unicom-vendor.firebaseio.com",
+        projectId: "unicom-vendor",
+        storageBucket: "unicom-vendor.appspot.com",
+        messagingSenderId: "994327206621",
+        appId: "1:994327206621:web:a03fefe7b36cceb61f5934",
+        measurementId: "G-SGDKHR2GX2",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      let isInitialLoad = true;
+
+      function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+
+      function formatTimestamp(timestamp) {
+        if (timestamp && timestamp.seconds) {
+          return new Date(timestamp.seconds * 1000).toLocaleString();
+        }
+        return "Unknown date";
+      }
+
+      function copyToClipboard(text, element) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            const copyIcon = element.querySelector(".copy-icon");
+            const checkIcon = element.querySelector(".check-icon");
+
+            copyIcon.style.opacity = "0";
+            checkIcon.style.display = "block";
+            checkIcon.style.opacity = "1";
+
+            checkIcon.style.animation =
+              "checkAnimation 0.3s ease-in-out forwards";
+
+            setTimeout(() => {
+              copyIcon.style.opacity = "1";
+              checkIcon.style.opacity = "0";
+              checkIcon.style.animation = "";
+              setTimeout(() => {
+                checkIcon.style.display = "none";
+              }, 200);
+            }, 1500);
+          })
+          .catch((err) => {
+            console.error("Failed to copy:", err);
+            alert("Failed to copy to clipboard");
+          });
+      }
+
+      function updateUI(curls) {
+        const curlsList = document.getElementById("curlsList");
+        curlsList.innerHTML = "";
+
+        isInitialLoad = false;
+
+        if (curls.length === 0) {
+          curlsList.innerHTML =
+            '<div class="no-data">No CURL requests found</div>';
+          return;
+        }
+        const responseContainerId = `response-${doc.id}`;
+        
+        curls.forEach((doc, index) => {
+          const data = doc.data();
+          const li = document.createElement("li");
+          li.className = "curl-item";
+          li.innerHTML = `
+                    <div class="curl-container">
+                        <div class="timestamp">[${formatTimestamp(
+                          data.dateTime
+                        )}]</div>
+                        <button class="copy-button" title="Copy CURL">
+                            <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 12.9V17.1C16 20.6 14.6 22 11.1 22H6.9C3.4 22 2 20.6 2 17.1V12.9C2 9.4 3.4 8 6.9 8H11.1C14.6 8 16 9.4 16 12.9Z" stroke="#FFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M22 6.9V11.1C22 14.6 20.6 16 17.1 16H16V12.9C16 9.4 14.6 8 11.1 8H8V6.9C8 3.4 9.4 2 12.9 2H17.1C20.6 2 22 3.4 22 6.9Z" stroke="#FFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                                <path d="M22 11.1V6.9C22 3.4 20.6 2 17.1 2H12.9C9.4 2 8 3.4 8 6.9V8H11.1C14.6 8 16 9.4 16 12.9V16H17.1C20.6 16 22 14.6 22 11.1Z" stroke="#FFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 17.1V12.9C16 9.4 14.6 8 11.1 8H6.9C3.4 8 2 9.4 2 12.9V17.1C2 20.6 3.4 22 6.9 22H11.1C14.6 22 16 20.6 16 17.1Z" stroke="#FFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6.08008 15L8.03008 16.95L11.9201 13.05" stroke="#FFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <button class="send-button" title="Send Request">
+                          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e8eaed">
+                            <path d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/>
+                          </svg>
+                        </button>
+                    </div>
+                    <div class="curl-container">
+                        <div class="curl-text">${data.curl}</div>
+                    </div>
+                    
+                    <div class="response-container" id="${responseContainerId}">
+                      <div class="response-header">
+                        <div class="response-status"></div>
+                      </div>
+                      <pre class="response-content"></pre>
+                    </div>
+                `;
+
+          const sendButton = li.querySelector('.send-button');
+          const responseContainer = li.querySelector('.response-container');
+          
+          sendButton.addEventListener('click', () => {
+            executeCurlCommand(data.curl, sendButton, responseContainer);
+          });
+
+          const copyButton = li.querySelector(".copy-button");
+          copyButton.addEventListener("click", () => {
+            copyToClipboard(data.curl, li);
+          });
+
+          curlsList.appendChild(li);
+
+          // Add animation with delay based on index
+          setTimeout(() => {
+            li.classList.add("show");
+          }, index * 100); // 100ms delay between each item
+        });
+      }
+      
+      function parseCurlCommand(curlCommand) {
+        const urlMatch = curlCommand.match(/(?:'([^']*)'|(\S+))/g);
+        if (!urlMatch) return null;
+
+        const parsedCommand = {
+          method: 'GET',
+          headers: {},
+          body: null
+        };
+
+        let url = '';
+        for (let i = 0; i < urlMatch.length; i++) {
+          const arg = urlMatch[i].replace(/^'|'$/g, '');
+          
+          if (arg.startsWith('http')) {
+            url = arg;
+          } else if (arg === '-H') {
+            const header = urlMatch[++i].replace(/^'|'$/g, '');
+            const [key, ...value] = header.split(':');
+            parsedCommand.headers[key.trim()] = value.join(':').trim();
+          } else if (arg === '-X') {
+            parsedCommand.method = urlMatch[++i].replace(/^'|'$/g, '');
+          } else if (arg === '-d') {
+            parsedCommand.body = urlMatch[++i].replace(/^'|'$/g, '');
+            if (!parsedCommand.method) parsedCommand.method = 'POST';
+          }
+        }
+
+        parsedCommand.url = url;
+        return parsedCommand;
+      }
+
+      async function executeCurlCommand(curlCommand, button, responseContainer) {
+        let response;
+        try {
+          button.disabled = true;
+          button.classList.add('loading');
+          button.textContent = 'Sending...';
+
+          const parsedCommand = parseCurlCommand(curlCommand);
+          if (!parsedCommand) throw new Error('Failed to parse CURL command');
+
+          response = await fetch(parsedCommand.url, {
+            method: parsedCommand.method,
+            headers: parsedCommand.headers,
+            body: parsedCommand.body,
+          });
+
+          const responseText = await response.text();
+          const formattedResponse = JSON.stringify(JSON.parse(responseText), null, 2);
+          
+          responseContainer.style.display = 'block';
+          const statusElement = responseContainer.querySelector('.response-status');
+          statusElement.textContent = `Status: ${response.status} ${response.statusText}`;
+          statusElement.className = 'response-status ' + 
+            (response.ok ? 'status-success' : 'status-error');
+
+          responseContainer.querySelector('.response-content').textContent = formattedResponse;
+        } catch (error) {
+          responseContainer.style.display = 'block';
+          const statusElement = responseContainer.querySelector('.response-status');
+          statusElement.textContent = 'Error: ' + error.message;
+          statusElement.className = 'response-status status-error';
+          responseContainer.querySelector('.response-content').textContent = error.stack || error.message;
+        } finally {
+          button.disabled = false;
+          button.classList.remove('loading');
+          if(response.status === 200) {
+            button.disabled = true;
+            button.innerHTML = '<svg width="19" height="18" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.3 15.3L16.825 11.775L16.125 11.075L13.3 13.9L11.875 12.475L11.175 13.175L13.3 15.3ZM14 18C13.3083 18 12.6583 17.8687 12.05 17.6062C11.4417 17.3437 10.9125 16.9875 10.4625 16.5375C10.0125 16.0875 9.65625 15.5583 9.39375 14.95C9.13125 14.3417 9 13.6917 9 13C9 12.3083 9.13125 11.6583 9.39375 11.05C9.65625 10.4417 10.0125 9.9125 10.4625 9.4625C10.9125 9.0125 11.4417 8.65625 12.05 8.39375C12.6583 8.13125 13.3083 8 14 8C14.6917 8 15.3417 8.13125 15.95 8.39375C16.5583 8.65625 17.0875 9.0125 17.5375 9.4625C17.9875 9.9125 18.3437 10.4417 18.6062 11.05C18.8687 11.6583 19 12.3083 19 13C19 13.6917 18.8687 14.3417 18.6062 14.95C18.3437 15.5583 17.9875 16.0875 17.5375 16.5375C17.0875 16.9875 16.5583 17.3437 15.95 17.6062C15.3417 17.8687 14.6917 18 14 18Z" fill="#E8EAED"/><path d="M0 16V0L14.3 6H14C13.4167 6 12.8667 6.06667 12.35 6.2C11.8333 6.33333 11.3333 6.51667 10.85 6.75L2 3V6.5L8 8L2 9.5V13L7.4 10.7C7.26667 11.0833 7.16667 11.4625 7.1 11.8375C7.03333 12.2125 7 12.6 7 13V13.05L0 16ZM2 10.7V3V13V10.7Z" fill="#E8EAED"/></svg>';
+          }
+        }
+      }
+
+      async function clearAllCurls() {
+        if (
+          confirm(
+            "Are you sure you want to clear all CURL history? This action cannot be undone."
+          )
+        ) {
+          try {
+            const curlsRef = collection(
+              db,
+              "Customer_CURLs",
+              getQueryParam("id"),
+              "CURLs"
+            );
+            const snapshot = await getDocs(curlsRef);
+
+            const deletePromises = snapshot.docs.map((doc) =>
+              deleteDoc(doc.ref)
+            );
+            await Promise.all(deletePromises);
+
+            console.log("History cleared successfully");
+          } catch (error) {
+            console.error("Error clearing history:", error);
+            alert("Error clearing history. Please try again.");
+          }
+        }
+      }
+
+      async function deleteDocument() {
+        const docId = getQueryParam("id");
+        if (
+          confirm(
+            `Are you sure you want to delete document ${docId}? This will remove all associated data.`
+          )
+        ) {
+          try {
+            const curlsRef = collection(db, "Customer_CURLs", docId, "CURLs");
+            const snapshot = await getDocs(curlsRef);
+
+            const deletePromises = snapshot.docs.map((doc) =>
+              deleteDoc(doc.ref)
+            );
+            await Promise.all(deletePromises);
+
+            const docRef = doc(db, "Customer_CURLs", docId);
+            await deleteDoc(docRef);
+
+            updateUI([]);
+
+            alert("Document deleted successfully");
+          } catch (error) {
+            console.error("Error deleting document:", error);
+            alert("Error deleting document. Please try again.");
+          }
+        }
+      }
+
+      function setupRealTimeListener() {
+        const curlsRef = collection(
+          db,
+          "Customer_CURLs",
+          getQueryParam("id"),
+          "CURLs"
+        );
+        const q = query(curlsRef, orderBy("dateTime", "desc"));
+
+        const unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            updateUI(snapshot.docs);
+          },
+          (error) => {
+            console.error("Error listening to changes: ", error);
+          }
+        );
+
+        return unsubscribe;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        setupRealTimeListener();
+        document
+          .getElementById("clearButton")
+          .addEventListener("click", clearAllCurls);
+        document
+          .getElementById("deleteDocButton")
+          .addEventListener("click", deleteDocument);
+      });
+    </script>
+  </body>
+</html>
